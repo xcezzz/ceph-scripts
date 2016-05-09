@@ -1,0 +1,9 @@
+#!/bin/bash
+OSDS=$@;
+for i in $OSDS; 
+    do 
+	TITAN=`ceph osd find ${i} | jq -r .crush_location.host`
+	USAGEPERCENT=`ssh ${TITAN} df --output='pcent' -h /var/lib/ceph/osd/ceph-${i} | tail -n +2`; 
+	RAWPCT=`echo ${USAGEPERCENT//\%};`
+	echo $RAWPCT;
+done

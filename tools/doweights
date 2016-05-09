@@ -1,0 +1,3 @@
+#!/bin/bash
+echo ceph osd reweight $1 $2
+ceph osd reweight $1 $2
