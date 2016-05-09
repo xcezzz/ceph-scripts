@@ -1,0 +1,10 @@
+#!/bin/bash
+OSDS=$@;
+for i in $OSDS; 
+    do 
+	TITAN=`ceph osd find ${i} | jq -r .crush_location.host`
+	ssh ${TITAN} sudo stop ceph-osd id=${i}; 
+	sleep 5; 
+	ssh ${TITAN} sudo start ceph-osd id=${i}; 
+	sleep 30;
+done

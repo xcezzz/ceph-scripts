@@ -1,0 +1,32 @@
+#!/bin/bash
+USAGE=${1-85}
+WEIGHTEDOSDS=`ceph osd tree --format=json | jq -r -c '.nodes[] | select(.type | contains("osd")) | select(.reweight | contains("0.")) | .id | @sh'` 
+LOWPCT=0
+HIGHPCT=0
+NEEDSWEIGHT=""
+echo $WEIGHTEDOSDS;
+for i in ${WEIGHTEDOSDS}
+do
+	CURRENTUSAGE=`./osd-size ${i};`
+	if [ $CURRENTUSAGE -lt $USAGE ];
+	then
+		OSDWEIGHT=`ceph osd tree --format=json | jq -r -c ".nodes[] | select(.id == ${i}) | .reweight"`
+		POINTINCREASE=`echo $OSDWEIGHT + 0.01 | bc`;
+		S=`echo "(${POINTINCREASE} + 0.01) * 1.00;" | bc`; 
+		NEWVALUES=`echo 0${S:0:3}`
+		OUTPUT="OSD: ${i} | Usage: $CURRENTUSAGE | Original: $OSDWEIGHT | New: $NEWVALUES $POINTINCREASE"; 
+		echo $OUTPUT | ./sendmsg;
+		echo $OUTPUT;
+		LOWPCT=`echo $LOWPCT + 1 | bc`
+		NEEDSWEIGHT=`echo "$NEEDSWEIGHT ${i}"`
+		./doweights ${i} $NEWVALUES;		
+	else
+		OUTPUT="OSD: ${i} at $CURRENTUSAGE"
+		echo $OUTPUT;
+		echo $OUTPUT | ./sendmsg;	
+		HIGHPCT=`echo $HIGHPCT + 1 | bc`
+	fi
+done
+
+echo "High: $HIGHPCT | Low: $LOWPCT"
+echo $NEEDSWEIGHT;
